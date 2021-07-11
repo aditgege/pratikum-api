@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+ /* @import '/tinymce/skins/ui/oxide/skins.css';
+ @import '~tinymce/skins/ui/oxide/content.css';
+ @import '~tinymce/skins/content/default/content.css';
+ @import './main.scss'; */
+
+/* // @import '~bootstrap/scss/bootstrap'; */
