@@ -5,6 +5,7 @@
 @section('content')
     <h2 class="m-5 text-center text-2xl font-display">Edit Article</h2>
     <form method="post">
+        @method('put')
         @csrf
         <div class="mb-3">
             <input type="text" class="form-control w-full" id="frm-title" name="frm-title" placeholder="Article Title" value="{{ $data->title }}">

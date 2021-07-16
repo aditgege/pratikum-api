@@ -27,6 +27,8 @@
         "@popperjs/core": "^2.9.2",
         "@tailwindcss/forms": "^0.3.3",
         "@tailwindcss/line-clamp": "^0.2.1",
+        "sweetalert": "^2.1.2",
+        "sweetalert2": "^11.0.18",
         "tinymce": "^5.8.2"
     }
 }

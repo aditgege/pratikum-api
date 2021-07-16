@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weblog - @yield('title', 'Main')</title>
     <link rel="stylesheet" href="{{ asset('css/app.css')}}">
-    <link rel="stylesheet" href="{{ asset('css/tinymce.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/tinymce.css')}}"> 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Calistoga&family=Neuton:wght@200&display=swap" rel="stylesheet">
@@ -21,7 +21,7 @@
             <li class="flex items-center text-primary">
                 <a href="{{ url('/')}}" aria-current="page">Home</a>
             </li>
-            <li class="flex items-center"><a href="{{ route('logout')}}" class="bg-red-400 bg-opacity-70 text-secondary group flex items-center rounded-md hover:bg-red-400 hover:text-primary text-light-blue-600 text-sm font-medium px-4 py-2">Logout</a></li>
+            <li class="flex items-center"><a href="{{ route('logout')}}" class=" bg-opacity-70 text-secondary group flex items-center rounded-md hover:bg-red-400 hover:text-primary text-light-blue-600 text-sm font-medium px-4 py-2">Logout</a></li>
         </ul>
         @else
         <ul class="flex space-x-8 font-bold">
@@ -52,10 +52,30 @@
         @endif
         @yield('content')
     </div>
+    <script type="text/javascript" src="{{ asset('js/app.js')}}"></script>
+    <script type="text/javascript">
+        console.log("test")
+        console.log({{ session('status')}})
+        @if(Session::has('success'))
+        Swal.fire(
+            'Yeay',
+            "{{ Session::get('success') }}",
+            'success'
+        )
+        console.log("ahay")
+        @endif
 
-    @section('page-script')
-        <script type="text/javascript" src="{{ asset('js/app.js')}}"></script>
-    @show
+        @if(Session::has('failed'))
+            Swal.fire(
+                'Oops',
+                "{{ Session::get('failed') }}",
+                'error'
+            )
+        console.log("ahay")
+
+        @endif
+    </script>
+    @yield('page-script')
     
 </body>
 </html>

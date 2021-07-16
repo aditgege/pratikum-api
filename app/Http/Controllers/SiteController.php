@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Http\Request;
 use GuzzleHttp\Client;
 use App\Models\User;
+use App\Models\Comment;
 use Carbon\Carbon;
 
 class SiteController extends Controller
@@ -28,18 +29,34 @@ class SiteController extends Controller
 
     }
 
-    public function index() {
-        $data = Cache::get('index', function(){
+    public function index()
+    {
+        $data = Cache::get('index', function () {
             try {
                 $reqData = $this->apiClient->get('articles');
                 $resource = json_decode($reqData->getBody())->resource;
-                Cache::add('index', $resource);
-                return $resource;
+                $reqDatas = [];
+                foreach($resource as $data){
+                    $author = $this->apiClient->get("authors/{$data->author}");
+                    $resourceAuthor = json_decode($author->getBody());
+                    $reqDatas[] = [
+                        "id" => $data->id,
+                        "title" => $data->title,
+                        "author_id" => $data->author,
+                        "author_name" => $resourceAuthor->name,
+                        "content" => $data->content,
+                        "published_at" => $data->published_at,
+                        "created_at" => $data->created_at
+                    ];
+                }
+                Cache::add('index', json_decode(json_encode((object) $reqDatas), FALSE));
+                return json_decode(json_encode((object) $reqDatas), FALSE);
+
             } catch (RequestException $e) {
                 return [];
             }
         });
-
+        // dd($data);
         return view('index', ['data' => $data]);
     }
 
@@ -49,16 +66,19 @@ class SiteController extends Controller
             try {
                 $reqData = $this->apiClient->get($key);
                 $resource = json_decode($reqData->getBody());
-
                 Cache::add($key, $resource);
                 return $resource;
             } catch (Exception $e) {
-                abort(404);
+                return redirect()->back()->with('failed', 'Something went wrong');
             }
         });
         $user = User::find($data->author);
         $data->author_name = $user->name ?? "-";
-        return view('viewArticle', ['data' => $data]);
+        return view('viewArticle', [
+            'data' => $data,
+            'comments' => Comment::where('article_id', $id)->get(),
+            'total_comment' => Comment::where('article_id', $id)->count()
+        ]);
     }
 
     public function newArticles(Request $request) {
@@ -69,7 +89,6 @@ class SiteController extends Controller
             if ($request->input('frm-status') == 'published') {
                 $published_at = Carbon::now();
             }
-            // dd(Auth::user()->name);
             $dataModel['resource'][] = [
                 'author' => Auth::user()->id,
                 'title' => $title,
@@ -77,20 +96,19 @@ class SiteController extends Controller
                 'published_at' => $published_at,
             ];
 
-
             try {
                 $reqData = $this->apiClient->post('articles', [
                     'json' => $dataModel
                 ]);
-                dd($reqData);
-                $apiResponse = json_decode($reqData->getBody())->resource;
-                $newId = $apiResponse[0]->id;
+
+                // $apiResponse = json_decode($reqData->getBody())->resource;
+                // $newId = $apiResponse[0]->id;
+                // dd($newId);
 
                 Cache::forget('index');
-
-                return redirect("/articles");
+                return redirect("/articles")->with('success', 'Article has been created');
             } catch (\Exception $e) {
-                abort(501);
+                return redirect()->back()->with('failed', 'Add Article Failed');
             }
         }
         
@@ -113,17 +131,15 @@ class SiteController extends Controller
             ];
 
             try {
-                $reqData = $this->apiClient->post('articles', [
+                $key = "articles/{$id}";
+                $reqData = $this->apiClient->put($key, [
                     'json' => $dataModel
                 ]);
-                $apiResponse = json_decode($reqData->getBody())->resource;
-                $newId = $apiResponse[0]->id;
-
+                Cache::forget($key);
                 Cache::forget('index');
-
-                return redirect("/articles");
+                return redirect()->route('article-show', $id)->with('success', 'Edit Success');
             } catch (\Exception $e) {
-                abort(501);
+                return redirect()->back()->with('failed', 'Edit failed');
             }
         }
         $key = "articles/{$id}";
@@ -135,12 +151,41 @@ class SiteController extends Controller
                 Cache::add($key, $resource);
                 return $resource;
             } catch (Exception $e) {
-                abort(404);
+                return redirect()->back()->with('failed', 'Something went wrong');
             }
         });
         $user = User::find($data->author);
         $data->author_name = $user->name ?? "-";
 
         return view('editArticle', ['data' => $data]);
+    }
+
+    public function deleteArticles(Request $request, $id) {
+        try {
+            $key = "articles/{$id}";
+            $reqData = $this->apiClient->delete($key);
+            $resource = json_decode($reqData->getBody());
+            Cache::forget($key);
+            Cache::forget('index');
+            // return redirect("/articles")->with('success', 'Delete Success');
+            return redirect()->route('article-index')->with('success', 'Suskes bang');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('failed', 'Delete failed');
+        }    
+    }
+
+    public function commentArticles(Request $request) {
+        try {
+            $comment = new Comment();
+            $comment->article_id = $request->input('form-article-id');
+            $comment->name = $request->input('form-name');
+            $comment->content = $request->input('form-content');
+            $comment->save();
+
+            return redirect()->route('article-show', $request->input('form-article-id'));
+        } catch (\Exception $ex) {
+            return redirect()->back()->with('failed', 'Add Comment Failed');
+        }
+        return redirect()->back();
     }
 }
